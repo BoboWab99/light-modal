@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wab Modal</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <div class="btn-cta-wrap">
+        <button class="btn-cta" onclick="Modal.open('modal1')">Open Modal 1</button>
+        <button class="btn-cta" onclick="Modal.open('modal2')">Open Modal 2</button>
+        <button class="btn-cta" onclick="Modal.open('modal3')">Open Nested Modal</button>
+        <button class="btn-cta" onclick="Modal.open('modal4', {closable: false, backdropClose: false})">Unclosable Modal</button>
+    </div>
+
+    <div class="modal-backdrop" id="modal1">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">First Modal</h2>
+                <button class="modal-close" onclick="Modal.close('modal1')" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>This modal is opened with a simple function call. No initialization needed!</p>
+                <ul style="margin: 16px 0 16px 24px;">
+                    <li>Zero memory overhead</li>
+                    <li>No class instances</li>
+                    <li>Just pure functions</li>
+                    <li>ESC closes active modal</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modal.close('modal1')">Close</button>
+                <button class="btn btn-primary" onclick="Modal.close('modal1')">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal2">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Second Modal</h2>
+                <button class="modal-close" onclick="Modal.close('modal2')" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Multiple modals work independently. Each button calls the same function with different IDs.</p>
+                <p style="margin-top: 16px;">Try opening Modal 1 from here:</p>
+                <button class="btn btn-primary" onclick="Modal.open('modal1')" style="margin-top: 12px;">
+                    Open Modal 1
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modal.close('modal2')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal3">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Nested Modal Parent</h2>
+                <button class="modal-close" onclick="Modal.close('modal3')" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>This modal can open another modal on top of it.</p>
+                <button class="btn btn-primary" onclick="Modal.open('modal3-child', {data: {userId: 123}, duration: 600})" style="margin-top: 16px;">
+                    Open Child Modal
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modal.close('modal3')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal3-child">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Child Modal</h2>
+                <button class="modal-close" onclick="Modal.close('modal3-child')"
+                    aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>This modal is opened on top of another modal. ESC will close only this one!</p>
+                <p style="margin-top: 16px; color: #ef4444; font-weight: 600;">Try pressing ESC key 👆</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modal.close('modal3-child')">Close</button>
+                <button class="btn btn-danger" onclick="Modal.closeAll()">Close All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal4">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">⚠️ Critical Action</h2>
+            </div>
+            <div class="modal-body">
+                <p style="color: #ef4444; font-weight: 600;">This modal cannot be closed with ESC or clicking outside!</p>
+                <p style="margin-top: 16px;">Perfect for confirmations, payment processing, or critical workflows where you need explicit user action.</p>
+                <p style="margin-top: 16px; font-size: 14px; color: #6b7280;">Try ESC or clicking the backdrop - nothing happens! 😎</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="Modal.close('modal4')">I Understand, Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+
+</html>
