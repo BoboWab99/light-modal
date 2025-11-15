@@ -26,6 +26,11 @@ const Modal = (() => {
     const __duration = 300;
 
     /**
+     * Ensure "popstate" is fired once per modal closed manually
+     */
+    var __popped = false;
+
+    /**
      * Helper to dispatch custom events
      * @param {String} eventName 
      * @param {String} modalId 
@@ -42,12 +47,12 @@ const Modal = (() => {
 
     // Global ESC key listener
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && __stack.length > 0) {
-            const topModalId = __stack[__stack.length - 1];
-            if (__meta[topModalId]?.closable !== false) {
-                close(topModalId);
-            }
-        }
+        if (e.key === "Escape") closeTop();
+    });
+
+    window.addEventListener("popstate", (e) => {
+        // console.log("popstate:", e.state);
+        if (!__popped && __stack.length > 0) __closeTop(true);
     });
 
     /**
@@ -59,6 +64,8 @@ const Modal = (() => {
     function open(id, options = {}) {
         const backdrop = document.getElementById(id);
         if (!backdrop) return;
+
+        history.pushState({ isWabModalOpen: true }, "");
 
         const {
             focus = true,
@@ -72,19 +79,19 @@ const Modal = (() => {
         const opener = document.activeElement;
 
         // Store metadata
-        __meta[id] = { closable, backdropClose, opener, duration, data };
-
-        // Fire open event
-        dispatch("wab.modal.open", id, data);
+        __meta[id] = { focus, closable, backdropClose, opener, duration, data };
 
         // Add modal id to stack
         __stack.push(id);
+
+        // Fire open event
+        dispatch("wab.modal.open", id, data);
 
         // Update z-index for stacking
         backdrop.style.zIndex = __zIndex + __stack.length;
 
         const modal = backdrop.querySelector(".modal");
-        
+
         // Apply custom animation duration
         if (duration !== __duration) {
             backdrop.style.transition = `opacity ${duration}ms ease, visibility ${duration}ms ease`;
@@ -101,7 +108,7 @@ const Modal = (() => {
             }
         };
         backdrop.addEventListener("click", clickHandler);
-        backdrop.__clickHandler = clickHandler;
+        backdrop.__wabModalClickHandler = clickHandler;
 
         // Handle focus and Fire opened event
         setTimeout(() => {
@@ -124,6 +131,16 @@ const Modal = (() => {
      * @returns 
      */
     function close(id) {
+        return __close(id, false);
+    }
+
+    /**
+     * Close open modal
+     * @param {String} id Modal id
+     * @param {Boolean} popstate True if called from "popstate" event handler
+     * @returns 
+     */
+    function __close(id, popstate) {
         const backdrop = document.getElementById(id);
         if (!backdrop || !__meta[id]) return;
 
@@ -134,30 +151,55 @@ const Modal = (() => {
 
         backdrop.classList.remove("open");
 
-        // Remove modal id from stack
-        const idx = __stack.indexOf(id);
-        if (idx > -1) __stack.splice(idx, 1);
-
         // Restore body scroll if no modals are open
         if (__stack.length === 0) {
             document.body.style.overflow = "";
         }
 
         // Clean up backdrop click listener
-        if (backdrop.__clickHandler) {
-            backdrop.removeEventListener("click", backdrop.__clickHandler);
-            delete backdrop.__clickHandler;
+        if (backdrop.__wabModalClickHandler) {
+            backdrop.removeEventListener("click", backdrop.__wabModalClickHandler);
+            delete backdrop.__wabModalClickHandler;
+        }
+
+        // Manually trigger back navigation
+        if (!popstate) {
+            history.back();
+            __popped = true;
         }
 
         // Fire closed event and cleanup metadata
         // Restore focus to opener element
         setTimeout(() => {
             delete __meta[id];
+            const idx = __stack.indexOf(id);
+            if (idx > -1) __stack.splice(idx, 1);
+
             if (opener && __stack.length === 0) {
                 opener.focus();
             }
             dispatch("wab.modal.closed", id, data);
         }, duration);
+    }
+
+    /**
+     * Close topmost open modal
+     * @param {Boolean} popstate True if called from "popstate" event handler
+     */
+    function __closeTop(popstate) {
+        if (__stack.length > 0) {
+            const topModalId = __stack[__stack.length - 1];
+            if (__meta[topModalId]?.closable !== false) {
+                return __close(topModalId, popstate);
+            }
+        }
+    }
+
+    /**
+     * Close topmost open modal
+     */
+    function closeTop() {
+        return __closeTop(false);
     }
 
     /**
@@ -177,23 +219,22 @@ const Modal = (() => {
         return __meta[id]?.data || null;
     }
 
-    return { open, close, closeAll, getData };
+    return { open, close, closeTop, closeAll, getData };
 })();
 
-
 // Event listeners
-document.addEventListener("wab.modal.open", (e) => {
-    console.log(`🔝 Modal opening: ${e.detail.id}`, e.detail.data);
-});
+// document.addEventListener("wab.modal.open", (e) => {
+//     console.log(`🔝 Modal opening: ${e.detail.id}`, e.detail.data);
+// });
 
-document.addEventListener("wab.modal.opened", (e) => {
-    console.log(`✅ Modal opened: ${e.detail.id}`, e.detail.data);
-});
+// document.addEventListener("wab.modal.opened", (e) => {
+//     console.log(`✅ Modal opened: ${e.detail.id}`, e.detail.data);
+// });
 
-document.addEventListener("wab.modal.close", (e) => {
-    console.log(`🔙 Modal closing: ${e.detail.id}`, e.detail.data);
-});
+// document.addEventListener("wab.modal.close", (e) => {
+//     console.log(`🔙 Modal closing: ${e.detail.id}`, e.detail.data);
+// });
 
-document.addEventListener("wab.modal.closed", (e) => {
-    console.log(`❌ Modal closed: ${e.detail.id}`, e.detail.data);
-});
+// document.addEventListener("wab.modal.closed", (e) => {
+//     console.log(`❌ Modal closed: ${e.detail.id}`, e.detail.data);
+// });
