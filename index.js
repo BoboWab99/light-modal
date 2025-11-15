@@ -31,6 +31,11 @@ const Modal = (() => {
     var __popped = false;
 
     /**
+     * True if the modal is closing or opening
+     */
+    var __transitioning = false;
+
+    /**
      * Helper to dispatch custom events
      * @param {String} eventName 
      * @param {String} modalId 
@@ -47,12 +52,15 @@ const Modal = (() => {
 
     // Global ESC key listener
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeTop();
+        if (!__transitioning && e.key === "Escape") closeTop();
     });
 
-    window.addEventListener("popstate", (e) => {
-        // console.log("popstate:", e.state);
-        if (!__popped && __stack.length > 0) __closeTop(true);
+    window.addEventListener("popstate", () => {
+        // @TODO Possible to prevent if __transitioning???
+        if (!__popped && __stack.length > 0) {
+            __closeTop(true);
+            __popped = __stack.length == 0;
+        }
     });
 
     /**
@@ -66,6 +74,8 @@ const Modal = (() => {
         if (!backdrop) return;
 
         history.pushState({ isWabModalOpen: true }, "");
+        __popped = false;
+        __transitioning = true;
 
         const {
             focus = true,
@@ -112,6 +122,8 @@ const Modal = (() => {
 
         // Handle focus and Fire opened event
         setTimeout(() => {
+            __transitioning = false;
+
             if (focus) {
                 const autofocusable = modal.querySelector("[autofocus]");
                 if (autofocusable) {
@@ -121,6 +133,7 @@ const Modal = (() => {
                     if (focusable.length) focusable[0].focus();
                 }
             }
+
             dispatch("wab.modal.opened", id, data);
         }, duration);
     }
@@ -144,6 +157,8 @@ const Modal = (() => {
         const backdrop = document.getElementById(id);
         if (!backdrop || !__meta[id]) return;
 
+        __transitioning = true;
+
         const { opener, duration, data } = __meta[id];
 
         // Fire close event
@@ -163,21 +178,22 @@ const Modal = (() => {
         }
 
         // Manually trigger back navigation
-        if (!popstate) {
-            history.back();
-            __popped = true;
-        }
+        if (!popstate) history.back();
 
         // Fire closed event and cleanup metadata
         // Restore focus to opener element
         setTimeout(() => {
+            __transitioning = false;
+
             delete __meta[id];
+
             const idx = __stack.indexOf(id);
             if (idx > -1) __stack.splice(idx, 1);
 
             if (opener && __stack.length === 0) {
                 opener.focus();
             }
+
             dispatch("wab.modal.closed", id, data);
         }, duration);
     }
